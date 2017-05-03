@@ -3,17 +3,20 @@
 #include <stdio.h>
 #include <assert.h>
 
+uint8_t buf1[] = "abcdefghijklnmopqrstuvwxyzABCDEFGHIJKLNMOPQRSTUVWXYZ0123456789";
+uint8_t buf2[64];
+uint8_t buf3[64];
+
 int main()
 {
+	size_t sz = sizeof(buf1);
+
 	des_init();
 
-	uint64_t p1 = 1, p2, c1;
-	c1 = des_encrypt(p1);
-	p2 = des_decrypt(c1);
+	des_encrypt_bytes(buf2, buf1, sz);
+	des_decrypt_bytes(buf3, buf2, 64);
 
-	printf("%016llx\n", c1);
-	printf("%016llx\n", p2);
-	
-	assert(p1 == p2);
+	printf("%s\n", (char*)buf3);
+
 	return 0;
 }
