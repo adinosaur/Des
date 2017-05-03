@@ -353,23 +353,72 @@ void des_init()
 }
 
 //
-//加密
+//加密一个64位
 //
-uint64_t des_encrypt(uint64_t p)
+void des_encrypt_uint64(uint64_t* c, const uint64_t* p)
 {
 	assert(isInit);
-	uint64_t c;
-	des_crypt(SK, (const uint8_t*)&p, (uint8_t*)&c);
-	return c;
+	des_crypt(SK, (const uint8_t*)p, (uint8_t*)c);
 }
 
 //
-//解密
+//解密一个64位
 //
-uint64_t des_decrypt(uint64_t c)
+void des_decrypt_uint64(uint64_t* p, const uint64_t* c)
 {
 	assert(isInit);
-	uint64_t p;
-	des_crypt(ESK, (const uint8_t*)&c, (uint8_t*)&p);
-	return p;
+	des_crypt(ESK, (const uint8_t*)c, (uint8_t*)p);
+}
+
+
+//
+//加密一串字节
+//
+void des_encrypt_bytes(uint8_t* c, const uint8_t* p, int sz)
+{
+	assert(isInit);
+	assert(c && p);
+	assert(sz > 0);
+	int i;
+	for (i = 0; i < sz - 7; i += 8)
+		des_encrypt_uint64((uint64_t*)(c + i), (uint64_t*)(p + i));
+
+	int bytes = sz - i;
+	uint8_t tail[8];
+	for (int j = 0; j < 8; j++)
+	{
+		if (j < bytes)
+			tail[j] = p[i + j];
+		else if (j == bytes)
+			tail[j] = 0x80;
+		else
+			tail[j] = 0;
+	}
+	des_encrypt_uint64((uint64_t*)(c + i), (uint64_t*)tail);
+}
+
+//
+//解密一串字节
+//
+void des_decrypt_bytes(uint8_t* p, const uint8_t* c, int sz)
+{
+	assert(isInit);
+	assert(c && p);
+	assert(sz > 0);
+	int i;
+	for (i = 0; i < sz; i += 8)
+		des_decrypt_uint64((uint64_t*)(p + i), (uint64_t*)(c + i));
+	
+	int padding = 1;
+	for (i = sz - 1; i >= sz - 8; i--)
+	{
+		if (p[i] == 0)
+			padding++;
+		else if (p[i] == 0x80)
+			break;
+		else
+			assert(false); // Invalid des crypt text
+	}
+	if (padding > 8)
+		assert(false); // Invalid des crypt text
 }
